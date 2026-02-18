@@ -48,3 +48,9 @@ export interface CartResponse {
 }
 
 export const getCart = () => api.get<CartResponse>("/api/v1/cart");
+
+export const removeItemFromCart = (productId: string) =>
+  api.delete(`/api/v1/cart/item/${productId}`);
+
+export const updateCartItemQuantity = (payload: AddToCartRequest) =>
+  api.put("/api/v1/cart/item", payload);
