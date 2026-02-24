@@ -72,4 +72,31 @@ public class CartService {
         return cartResponse;
     }
 
+    public AddToCartResponse removeItemFromCart(UUID userId, UUID productId) {
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new BadRequestException("Cart not found for user."));
+        
+        CartItem cartItem = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
+                .orElseThrow(() -> new BadRequestException("Item not found in cart."));
+        
+        cartItemRepository.delete(cartItem);
+        
+        return new AddToCartResponse("Item removed from cart successfully", cart.getId());
+    }
+
+    public AddToCartResponse updateCartItemQuantity(UUID userId, AddToCartRequest request) {
+        if(request.getQuantity() == null || request.getQuantity() <= 0) {
+            throw new BadRequestException("Quantity must be greater than 0");
+        }
+
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new BadRequestException("Cart not found for user."));
+        
+        CartItem cartItem = cartItemRepository.findByCartIdAndProductId(cart.getId(), request.getProductId())
+                .orElseThrow(() -> new BadRequestException("Item not found in cart."));
+        
+        cartItem.setQuantity(request.getQuantity());
+        cartItemRepository.save(cartItem);
+        
+        return new AddToCartResponse("Cart item quantity updated successfully", cart.getId());
+    }
+
 }

@@ -1,9 +1,21 @@
+import { useState } from "react";
 import { Button } from "./button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./card";
 import { Badge } from "./badge";
 import { ShoppingCart, Heart } from "lucide-react";
 import { addProductToCart } from "@/api/apis";
 import { useAuth } from "@/context/AuthContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
+import { Input } from "./input";
+import { Label } from "./label";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   id: string;
@@ -31,27 +43,53 @@ export function ProductCard({
   isOnSale = false,
 }: ProductCardProps) {
   const { isAuthenticated } = useAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   const discount = originalPrice
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
-  async function handleAddToCartButton() {
-    // If user is authenticated, call backend API
+  const handleAddToCartClick = () => {
+    setQuantity(1);
+    setIsDialogOpen(true);
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    if (!isNaN(value) && value >= 1 && value <= 10) {
+      setQuantity(value);
+    }
+  };
+
+  const handleQuantityIncrement = () => {
+    if (quantity < 10) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const handleQuantityDecrement = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
+  async function handleAddToCart(selectedQuantity: number) {
     if (isAuthenticated) {
       try {
         await addProductToCart({
           productId: id,
-          quantity: 1,
+          quantity: selectedQuantity,
         });
-        console.log("Product added to cart (server)");
+        toast.success("Item added to cart");
+        setIsDialogOpen(false);
       } catch (error) {
         console.error("Failed to add product to cart", error);
+        toast.error("Failed to add item to cart");
       }
       return;
     }
 
-    // If user is not authenticated, store cart data in localStorage
     try {
       const STORAGE_KEY = "guestCart";
       const existing = localStorage.getItem(STORAGE_KEY);
@@ -79,11 +117,11 @@ export function ProductCard({
 
       const index = cart.findIndex((item) => item.productId === id);
       if (index >= 0) {
-        cart[index].quantity += 1;
+        cart[index].quantity += selectedQuantity;
       } else {
         cart.push({
           productId: id,
-          quantity: 1,
+          quantity: selectedQuantity,
           name,
           price,
           image,
@@ -91,9 +129,11 @@ export function ProductCard({
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
-      console.log("Product added to cart (localStorage)", cart);
+      toast.success("Item added to cart");
+      setIsDialogOpen(false);
     } catch (error) {
       console.error("Failed to add product to local cart", error);
+      toast.error("Failed to add item to cart");
     }
   }
 
@@ -155,11 +195,11 @@ export function ProductCard({
               </svg>
             ))}
           </div>
-          <span className="text-sm text-gray-500 ml-1">({reviews})</span>
+          <span className="text-sm text-gray-500 ml-1">{reviews}</span>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-blue-600">${price}</span>
+            <span className="text-xl font-bold text-blue-600">₹{price}</span>
             {originalPrice && (
               <span className="text-sm text-gray-500 line-through">
                 ${originalPrice}
@@ -169,11 +209,67 @@ export function ProductCard({
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">
-        <Button onClick={handleAddToCartButton} className="w-full" size="sm">
+        <Button onClick={handleAddToCartClick} className="w-full" size="sm">
           <ShoppingCart className="mr-2 h-4 w-4" />
           Add to Cart
         </Button>
       </CardFooter>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Select Quantity</DialogTitle>
+            <DialogDescription>
+              Choose the quantity you want to add to your cart (max 10)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="quantity">Quantity</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleQuantityDecrement}
+                  disabled={quantity <= 1}
+                >
+                  <span className="text-lg">-</span>
+                </Button>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={quantity}
+                  onChange={handleQuantityChange}
+                  className="text-center"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleQuantityIncrement}
+                  disabled={quantity >= 10}
+                >
+                  <span className="text-lg">+</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={() => handleAddToCart(quantity)}>
+              Add to Cart
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

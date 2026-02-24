@@ -26,4 +26,14 @@ public class CartController {
     public ResponseEntity<CartResponse> getCart(@RequestHeader("X-USER-ID") UUID userId) {
         return ResponseEntity.ok(cartService.getCartForUser(userId));
     }
+
+    @DeleteMapping("/item/{productId}")
+    public ResponseEntity<AddToCartResponse> removeItemFromCart(@RequestHeader("X-USER-ID") UUID userId, @PathVariable UUID productId) {
+        return ResponseEntity.ok(cartService.removeItemFromCart(userId, productId));
+    }
+
+    @PutMapping("/item")
+    public ResponseEntity<AddToCartResponse> updateCartItemQuantity(@RequestHeader("X-USER-ID") UUID userId, @RequestBody AddToCartRequest updateCartRequest) {
+        return ResponseEntity.ok(cartService.updateCartItemQuantity(userId, updateCartRequest));
+    }
 }

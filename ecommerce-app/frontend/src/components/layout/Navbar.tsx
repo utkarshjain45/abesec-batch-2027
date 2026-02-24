@@ -22,21 +22,50 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { getCart, type CartResponse } from "@/api/apis";
+import { getCart, removeItemFromCart, updateCartItemQuantity, type CartResponse } from "@/api/apis";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
-import { ShoppingCart, User, Package, LogOut } from "lucide-react";
+import { ShoppingCart, User, Package, LogOut, Plus, Minus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+
+type GuestCartItem = {
+  productId: string;
+  quantity: number;
+  name: string;
+  price: number;
+  image: string;
+};
 
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState<CartResponse | null>(null);
+  const [guestCart, setGuestCart] = useState<GuestCartItem[]>([]);
   const [isCartLoading, setIsCartLoading] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
 
+  const loadGuestCart = () => {
+    const STORAGE_KEY = "guestCart";
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing) {
+      try {
+        const cart = JSON.parse(existing);
+        setGuestCart(Array.isArray(cart) ? cart : []);
+      } catch {
+        setGuestCart([]);
+      }
+    } else {
+      setGuestCart([]);
+    }
+  };
+
   const loadCart = async () => {
+    if (!isAuthenticated) {
+      loadGuestCart();
+      return;
+    }
     try {
       setIsCartLoading(true);
       setCartError(null);
@@ -55,6 +84,81 @@ const Navbar = () => {
     if (open) {
       loadCart();
     }
+  };
+
+  const handleRemoveItem = async (productId: string) => {
+    if (!isAuthenticated) {
+      // Handle guest cart
+      const STORAGE_KEY = "guestCart";
+      const existing = localStorage.getItem(STORAGE_KEY);
+      if (existing) {
+        try {
+          const cart: GuestCartItem[] = JSON.parse(existing);
+          const updatedCart = cart.filter((item) => item.productId !== productId);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCart));
+          setGuestCart(updatedCart);
+          toast.success("Item removed from cart");
+        } catch (error) {
+          console.error("Failed to remove item from guest cart", error);
+          toast.error("Failed to remove item from cart");
+        }
+      }
+      return;
+    }
+
+    try {
+      await removeItemFromCart(productId);
+      toast.success("Item removed from cart");
+      loadCart(); // Reload cart to reflect changes
+    } catch (error) {
+      console.error("Failed to remove item from cart", error);
+      toast.error("Failed to remove item from cart");
+    }
+  };
+
+  const handleUpdateQuantity = async (productId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      handleRemoveItem(productId);
+      return;
+    }
+
+    if (!isAuthenticated) {
+      // Handle guest cart
+      const STORAGE_KEY = "guestCart";
+      const existing = localStorage.getItem(STORAGE_KEY);
+      if (existing) {
+        try {
+          const cart: GuestCartItem[] = JSON.parse(existing);
+          const index = cart.findIndex((item) => item.productId === productId);
+          if (index >= 0) {
+            cart[index].quantity = newQuantity;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+            setGuestCart(cart);
+            toast.success("Cart updated");
+          }
+        } catch (error) {
+          console.error("Failed to update guest cart", error);
+          toast.error("Failed to update cart item");
+        }
+      }
+      return;
+    }
+
+    try {
+      await updateCartItemQuantity({
+        productId,
+        quantity: newQuantity,
+      });
+      toast.success("Cart updated");
+      loadCart(); // Reload cart to reflect changes
+    } catch (error) {
+      console.error("Failed to update cart item", error);
+      toast.error("Failed to update cart item");
+    }
+  };
+
+  const getGuestCartTotal = () => {
+    return guestCart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   const handleLogout = async () => {
@@ -130,23 +234,23 @@ const Navbar = () => {
           </NavigationMenu>
 
           <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <>
-                <Sheet open={isCartOpen} onOpenChange={handleCartOpenChange}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="relative h-8 w-8 rounded-full"
-                    >
-                      <ShoppingCart className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-full sm:max-w-md">
-                    <SheetHeader>
-                      <SheetTitle>My Cart</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-4 space-y-4">
+            <Sheet open={isCartOpen} onOpenChange={handleCartOpenChange}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-8 w-8 rounded-full"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-md">
+                <SheetHeader>
+                  <SheetTitle>My Cart</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4 space-y-4">
+                  {isAuthenticated ? (
+                    <>
                       {isCartLoading && (
                         <p className="text-sm text-muted-foreground">
                           Loading your cart...
@@ -169,7 +273,7 @@ const Navbar = () => {
                         cart.products.map((product) => (
                           <div
                             key={product.id}
-                            className="flex items-center gap-4"
+                            className="flex items-center gap-4 p-3 border rounded-lg"
                           >
                             <img
                               src={product.images[0]}
@@ -180,27 +284,150 @@ const Navbar = () => {
                               <p className="font-medium line-clamp-1">
                                 {product.name}
                               </p>
-                              <p className="text-sm text-muted-foreground">
-                                Qty: {product.quantity}
-                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() =>
+                                    handleUpdateQuantity(
+                                      product.id,
+                                      product.quantity - 1
+                                    )
+                                  }
+                                  disabled={product.quantity <= 1}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="text-sm font-medium min-w-[2rem] text-center">
+                                  {product.quantity}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() =>
+                                    handleUpdateQuantity(
+                                      product.id,
+                                      product.quantity + 1
+                                    )
+                                  }
+                                  disabled={product.quantity >= 10}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="text-right font-semibold">
-                              ₹
-                              {(product.price * product.quantity).toFixed(2)}
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="text-right font-semibold">
+                                ₹
+                                {(product.price * product.quantity).toFixed(2)}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleRemoveItem(product.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}
-                    </div>
-                    {cart && (
-                      <div className="mt-6 border-t pt-4 flex items-center justify-between">
-                        <span className="font-medium">Total</span>
-                        <span className="text-lg font-semibold">
-                          ₹{cart.totalAmount.toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                  </SheetContent>
-                </Sheet>
+                      {cart && (
+                        <div className="mt-6 border-t pt-4 flex items-center justify-between">
+                          <span className="font-medium">Total</span>
+                          <span className="text-lg font-semibold">
+                            ₹{cart.totalAmount.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {guestCart.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          Your cart is empty.
+                        </p>
+                      )}
+                      {guestCart.map((item) => (
+                        <div
+                          key={item.productId}
+                          className="flex items-center gap-4 p-3 border rounded-lg"
+                        >
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-16 w-16 rounded object-cover"
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium line-clamp-1">
+                              {item.name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() =>
+                                  handleUpdateQuantity(
+                                    item.productId,
+                                    item.quantity - 1
+                                  )
+                                }
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="text-sm font-medium min-w-[2rem] text-center">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() =>
+                                  handleUpdateQuantity(
+                                    item.productId,
+                                    item.quantity + 1
+                                  )
+                                }
+                                disabled={item.quantity >= 10}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="text-right font-semibold">
+                              ₹{(item.price * item.quantity).toFixed(2)}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleRemoveItem(item.productId)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {guestCart.length > 0 && (
+                        <div className="mt-6 border-t pt-4 flex items-center justify-between">
+                          <span className="font-medium">Total</span>
+                          <span className="text-lg font-semibold">
+                            ₹{getGuestCartTotal().toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+            {isAuthenticated ? (
+              <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
