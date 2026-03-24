@@ -293,7 +293,7 @@ const Navbar = () => {
                         cart &&
                         cart.cart.map((cartItem) => (
                           <div
-                            key={cartItem.id}
+                            key={cartItem.productId}
                             className="flex items-center gap-4 p-3 border rounded-lg"
                           >
                             <input
