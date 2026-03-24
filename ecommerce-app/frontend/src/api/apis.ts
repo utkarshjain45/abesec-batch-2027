@@ -33,8 +33,9 @@ interface AddToCartRequest {
 export const addProductToCart = (payload: AddToCartRequest) =>
   api.post("/api/v1/cart", payload);
 
-export interface CartProduct {
+export interface CartItemDTO {
   id: string;
+  productId: string;
   name: string;
   slug: string;
   images: string[];
@@ -43,7 +44,7 @@ export interface CartProduct {
 }
 
 export interface CartResponse {
-  products: CartProduct[];
+  cart: CartItemDTO[];
   totalAmount: number;
 }
 

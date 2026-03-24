@@ -22,11 +22,24 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { getCart, removeItemFromCart, updateCartItemQuantity, type CartResponse } from "@/api/apis";
+import {
+  getCart,
+  removeItemFromCart,
+  updateCartItemQuantity,
+  type CartResponse,
+} from "@/api/apis";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
-import { ShoppingCart, User, Package, LogOut, Plus, Minus, Trash2 } from "lucide-react";
+import {
+  ShoppingCart,
+  User,
+  Package,
+  LogOut,
+  Plus,
+  Minus,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -94,7 +107,9 @@ const Navbar = () => {
       if (existing) {
         try {
           const cart: GuestCartItem[] = JSON.parse(existing);
-          const updatedCart = cart.filter((item) => item.productId !== productId);
+          const updatedCart = cart.filter(
+            (item) => item.productId !== productId,
+          );
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCart));
           setGuestCart(updatedCart);
           toast.success("Item removed from cart");
@@ -116,7 +131,10 @@ const Navbar = () => {
     }
   };
 
-  const handleUpdateQuantity = async (productId: string, newQuantity: number) => {
+  const handleUpdateQuantity = async (
+    productId: string,
+    newQuantity: number,
+  ) => {
     if (newQuantity <= 0) {
       handleRemoveItem(productId);
       return;
@@ -158,7 +176,10 @@ const Navbar = () => {
   };
 
   const getGuestCartTotal = () => {
-    return guestCart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return guestCart.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0,
+    );
   };
 
   const handleLogout = async () => {
@@ -262,7 +283,7 @@ const Navbar = () => {
                       {!isCartLoading &&
                         !cartError &&
                         cart &&
-                        cart.products.length === 0 && (
+                        cart.cart.length === 0 && (
                           <p className="text-sm text-muted-foreground">
                             Your cart is empty.
                           </p>
@@ -270,19 +291,24 @@ const Navbar = () => {
                       {!isCartLoading &&
                         !cartError &&
                         cart &&
-                        cart.products.map((product) => (
+                        cart.cart.map((cartItem) => (
                           <div
-                            key={product.id}
+                            key={cartItem.id}
                             className="flex items-center gap-4 p-3 border rounded-lg"
                           >
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${cartItem.name}`}
+                              className="h-4 w-4 cursor-pointer"
+                            />
                             <img
-                              src={product.images[0]}
-                              alt={product.name}
+                              src={cartItem.images[0]}
+                              alt={cartItem.name}
                               className="h-16 w-16 rounded object-cover"
                             />
                             <div className="flex-1">
                               <p className="font-medium line-clamp-1">
-                                {product.name}
+                                {cartItem.name}
                               </p>
                               <div className="flex items-center gap-2 mt-2">
                                 <Button
@@ -291,16 +317,16 @@ const Navbar = () => {
                                   className="h-7 w-7"
                                   onClick={() =>
                                     handleUpdateQuantity(
-                                      product.id,
-                                      product.quantity - 1
+                                      cartItem.id,
+                                      cartItem.quantity - 1,
                                     )
                                   }
-                                  disabled={product.quantity <= 1}
+                                  disabled={cartItem.quantity <= 1}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
                                 <span className="text-sm font-medium min-w-[2rem] text-center">
-                                  {product.quantity}
+                                  {cartItem.quantity}
                                 </span>
                                 <Button
                                   variant="outline"
@@ -308,11 +334,11 @@ const Navbar = () => {
                                   className="h-7 w-7"
                                   onClick={() =>
                                     handleUpdateQuantity(
-                                      product.id,
-                                      product.quantity + 1
+                                      cartItem.id,
+                                      cartItem.quantity + 1,
                                     )
                                   }
-                                  disabled={product.quantity >= 10}
+                                  disabled={cartItem.quantity >= 10}
                                 >
                                   <Plus className="h-3 w-3" />
                                 </Button>
@@ -321,13 +347,15 @@ const Navbar = () => {
                             <div className="flex flex-col items-end gap-2">
                               <div className="text-right font-semibold">
                                 ₹
-                                {(product.price * product.quantity).toFixed(2)}
+                                {(cartItem.price * cartItem.quantity).toFixed(
+                                  2,
+                                )}
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleRemoveItem(product.id)}
+                                onClick={() => handleRemoveItem(cartItem.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -355,6 +383,11 @@ const Navbar = () => {
                           key={item.productId}
                           className="flex items-center gap-4 p-3 border rounded-lg"
                         >
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${item.name}`}
+                            className="h-4 w-4 cursor-pointer"
+                          />
                           <img
                             src={item.image}
                             alt={item.name}
@@ -372,7 +405,7 @@ const Navbar = () => {
                                 onClick={() =>
                                   handleUpdateQuantity(
                                     item.productId,
-                                    item.quantity - 1
+                                    item.quantity - 1,
                                   )
                                 }
                                 disabled={item.quantity <= 1}
@@ -389,7 +422,7 @@ const Navbar = () => {
                                 onClick={() =>
                                   handleUpdateQuantity(
                                     item.productId,
-                                    item.quantity + 1
+                                    item.quantity + 1,
                                   )
                                 }
                                 disabled={item.quantity >= 10}

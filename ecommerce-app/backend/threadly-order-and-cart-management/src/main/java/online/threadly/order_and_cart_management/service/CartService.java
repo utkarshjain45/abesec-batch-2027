@@ -1,13 +1,11 @@
 package online.threadly.order_and_cart_management.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import online.threadly.order_and_cart_management.client.ProductClient;
-import online.threadly.order_and_cart_management.dto.AddToCartRequest;
-import online.threadly.order_and_cart_management.dto.AddToCartResponse;
-import online.threadly.order_and_cart_management.dto.CartResponse;
-import online.threadly.order_and_cart_management.dto.Product;
+import online.threadly.order_and_cart_management.dto.*;
 import online.threadly.order_and_cart_management.exception.BadRequestException;
 import online.threadly.order_and_cart_management.model.Cart;
 import online.threadly.order_and_cart_management.model.CartItem;
@@ -66,17 +64,29 @@ public class CartService {
     List<UUID> productIds = cartItems.stream().map(CartItem::getProductId).toList();
     List<Product> products = productClient.getProductsByIds(productIds);
 
+    List<CartItemDTO> userCart = new ArrayList<>();
     CartResponse cartResponse = new CartResponse();
     double totalAmount = 0.0;
     for (CartItem cartItem : cartItems) {
       for (Product product : products) {
         if (cartItem.getProductId().equals(product.getId())) {
+          CartItemDTO cartItemDTO =
+              CartItemDTO.builder()
+                  .id(cartItem.getId())
+                  .productId(product.getId())
+                  .price(product.getPrice())
+                  .images(product.getImages())
+                  .name(product.getName())
+                  .slug(product.getSlug())
+                  .quantity(cartItem.getQuantity())
+                  .build();
+          userCart.add(cartItemDTO);
           product.setQuantity(cartItem.getQuantity());
           totalAmount += (product.getPrice() * cartItem.getQuantity());
         }
       }
     }
-    cartResponse.setProducts(products);
+    cartResponse.setCart(userCart);
     cartResponse.setTotalAmount(totalAmount);
 
     return cartResponse;
