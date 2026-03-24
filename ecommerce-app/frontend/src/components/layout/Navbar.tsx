@@ -317,7 +317,7 @@ const Navbar = () => {
                                   className="h-7 w-7"
                                   onClick={() =>
                                     handleUpdateQuantity(
-                                      cartItem.id,
+                                      cartItem.productId,
                                       cartItem.quantity - 1,
                                     )
                                   }
@@ -334,7 +334,7 @@ const Navbar = () => {
                                   className="h-7 w-7"
                                   onClick={() =>
                                     handleUpdateQuantity(
-                                      cartItem.id,
+                                      cartItem.productId,
                                       cartItem.quantity + 1,
                                     )
                                   }
