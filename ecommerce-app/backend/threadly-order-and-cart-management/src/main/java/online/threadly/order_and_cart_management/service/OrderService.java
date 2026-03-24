@@ -2,6 +2,7 @@ package online.threadly.order_and_cart_management.service;
 
 import java.util.List;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import online.threadly.order_and_cart_management.client.ProductClient;
 import online.threadly.order_and_cart_management.dto.OrderResponse;
 import online.threadly.order_and_cart_management.dto.Product;
@@ -15,12 +16,13 @@ import online.threadly.order_and_cart_management.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
 @Service
+@AllArgsConstructor
 public class OrderService {
 
-  private CartItemService cartItemService;
-  private ProductClient productClient;
-  private OrderRepository orderRepository;
-  private OrderItemRepository orderItemRepository;
+  private final CartItemService cartItemService;
+  private final ProductClient productClient;
+  private final OrderRepository orderRepository;
+  private final OrderItemRepository orderItemRepository;
 
   public OrderResponse checkout(UUID userId, List<UUID> cartItemsIds) {
     List<CartItem> cartItems = cartItemService.getCartItemsByCartItemsIds(cartItemsIds);

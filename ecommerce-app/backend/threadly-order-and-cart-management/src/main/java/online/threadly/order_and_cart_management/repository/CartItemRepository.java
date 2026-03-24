@@ -12,7 +12,4 @@ public interface CartItemRepository extends JpaRepository<CartItem, UUID> {
   Optional<CartItem> findByCartIdAndProductId(UUID cartId, UUID productId);
 
   List<CartItem> findAllByCartId(UUID cartId);
-
-  // SELECT * FROM cart_items WHERE cart_id IN [cartId1, cartId2....];
-  List<CartItem> findAllByCartItemIds(List<UUID> cartItemIds);
 }

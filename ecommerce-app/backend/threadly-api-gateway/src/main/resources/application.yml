@@ -62,3 +62,8 @@ spring:
           uri: lb://threadly-order-and-cart-management
           predicates:
             - Path=/api/v1/cart/**
+
+        - id: threadly-order-management
+          uri: lb://threadly-order-and-cart-management
+          predicates:
+            - Path=/api/v1/orders/**
