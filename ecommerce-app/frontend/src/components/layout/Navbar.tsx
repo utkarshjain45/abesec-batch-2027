@@ -167,8 +167,19 @@ const Navbar = () => {
         productId,
         quantity: newQuantity,
       });
+      setCart((prev) => {
+        if (!prev) return prev;
+            
+        return {
+          ...prev,
+          cart: prev.cart.map((item) =>
+            item.productId === productId
+              ? { ...item, quantity: newQuantity }
+              : item
+          ),
+        };
+      });
       toast.success("Cart updated");
-      loadCart(); // Reload cart to reflect changes
     } catch (error) {
       console.error("Failed to update cart item", error);
       toast.error("Failed to update cart item");
